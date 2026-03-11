@@ -1,0 +1,28 @@
+--- preprocess ---
+# препроцессинг данных
+def preprocess(img):
+    img = tf.cast(img, "float32") / 255.0
+    return img
+
+# Масштабирование значений пикселей в диапазон [0, 1]
+train = train_data.map(lambda x: preprocess(x))     
+# Повтор набора данных пять раз
+train = train.repeat(DATASET_REPETITIONS)          
+# Объединение данных в группы по 64 изображения
+train = train.batch(BATCH_SIZE, drop_remainder=True) # 4)--- spherical ---
+# Интерполяция между двумя точками латентного пространства
+tf.random.set_seed(100)
+
+def spherical_interpolation(a, b, t):
+    return np.sin(t * math.pi / 2) * a + np.cos(t * math.pi / 2) * b
+
+for i in range(5):
+    a = tf.random.normal(shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
+    b = tf.random.normal(shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
+    initial_noise = tf.convert_to_tensor(
+        [spherical_interpolation(a, b, t) for t in np.arange(0, 1.1, 0.1)]
+    )
+    generated_images = ddm.generate(
+        num_images=2, diffusion_steps=20, initial_noise=initial_noise
+    ).numpy()
+    display(generated_images, n=11)
